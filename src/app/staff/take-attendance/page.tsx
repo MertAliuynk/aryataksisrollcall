@@ -160,7 +160,6 @@ export default function TakeAttendancePage() {
       alert('Seçilen tarih bu kurs seviyesi için yoklama günü değil!');
       return;
     }
-
     // Tarih ve kurs seviyesi uyumluluğunu tekrar kontrol et
     const dateCheck = checkAttendanceDay(attendanceDate, selectedCourseLevel);
     if (!dateCheck.isValid) {
