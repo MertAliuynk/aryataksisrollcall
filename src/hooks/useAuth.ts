@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '../utils/trpc'
+import { skipToken } from '@tanstack/react-query';
 
 interface User {
   id: string
@@ -15,27 +16,39 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  const verifyToken = api.auth.verifyToken.useMutation({
-    onSuccess: (userData) => {
-      setUser(userData)
-      setIsLoading(false)
-    },
-    onError: () => {
-      setUser(null)
-      setIsLoading(false)
-      // Token geçersizse localStorage'dan temizle
-      localStorage.removeItem('auth-token')
-    }
-  })
+
+  // Token doğrulama için useQuery kullan
+
+  const [token, setToken] = useState<string | null>(null);
+  const { data: verifyData, isLoading: verifyLoading, isError: verifyError } = api.auth.verifyToken.useQuery(
+    token ? { token } : skipToken
+  );
+
 
   useEffect(() => {
-    const token = localStorage.getItem('auth-token')
-    if (token) {
-      verifyToken.mutate({ token })
+    const storedToken = localStorage.getItem('auth-token');
+    if (storedToken) {
+      setToken(storedToken);
     } else {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
+
+
+  useEffect(() => {
+    if (token === null) return;
+    if (!verifyLoading) {
+      if (verifyData && verifyData.staff) {
+        setUser(verifyData.staff);
+      } else if (verifyError) {
+        setUser(null);
+        localStorage.removeItem('auth-token');
+      }
+      setIsLoading(false);
+    }
+  }, [verifyLoading, verifyData, verifyError, token]);
+
+
 
   const logout = () => {
     localStorage.removeItem('auth-token')
