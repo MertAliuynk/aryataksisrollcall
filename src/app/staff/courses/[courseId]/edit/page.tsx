@@ -56,7 +56,7 @@ export default function EditCoursePage() {
     if (course) {
       setFormData({
         name: course.name,
-        attendanceDays: course.attendanceDays
+        attendanceDays: course.courseLevels?.[0]?.attendanceDays?.split(',') || []
       });
     }
   }, [course]);
@@ -86,10 +86,18 @@ export default function EditCoursePage() {
     setIsSubmitting(true);
     
     try {
+      if (!course || !course.courseLevels || !course.courseLevels[0]) {
+        alert('Kurs seviyesi bulunamadı!');
+        setIsSubmitting(false);
+        return;
+      }
       await updateCourseMutation.mutateAsync({
         id: courseId,
         name: formData.name.trim(),
-        attendanceDays: formData.attendanceDays
+        levels: [{
+          level: course.courseLevels[0].level as "temel" | "teknik" | "performans",
+          attendanceDays: formData.attendanceDays
+        }]
       });
     } catch (error) {
       console.error('Güncelleme hatası:', error);
