@@ -1,3 +1,4 @@
+import type { Course } from './course';
 export interface Student {
   id: string;
   firstName: string;
