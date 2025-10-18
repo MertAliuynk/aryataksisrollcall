@@ -171,9 +171,8 @@ export default function PaymentTrackingPage() {
               <Select 
                 value={selectedCourseLevel} 
                 onValueChange={setSelectedCourseLevel}
-                disabled={!selectedCourse}
               >
-                <SelectTrigger>
+                <SelectTrigger disabled={!selectedCourse}>
                   <SelectValue placeholder="Seviye seçin" />
                 </SelectTrigger>
                 <SelectContent>

@@ -28,6 +28,11 @@ export default function EditStudentPage() {
   const [birthDate, setBirthDate] = useState('');
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
+  
+  // Legacy fields - remove if not needed
+  const [phone, setPhone] = useState('');
+  const [parentName, setParentName] = useState('');
+  const [parentPhone, setParentPhone] = useState('');
 
   // Öğrenci bilgilerini getir
   const { data: student, isLoading: studentLoading } = api.student.getById.useQuery({
@@ -57,11 +62,19 @@ export default function EditStudentPage() {
     if (student) {
       setFirstName(student.firstName);
       setLastName(student.lastName);
-      setPhone(student.phone || '');
-      setParentName(student.parentName);
-      setParentPhone(student.parentPhone);
+      setMotherFirstName(student.motherFirstName || '');
+      setMotherLastName(student.motherLastName || '');
+      setMotherPhone(student.motherPhone || '');
+      setFatherFirstName(student.fatherFirstName || '');
+      setFatherLastName(student.fatherLastName || '');
+      setFatherPhone(student.fatherPhone || '');
       setBirthDate(student.birthDate ? new Date(student.birthDate).toISOString().split('T')[0] : '');
       setGender(student.gender as 'male' | 'female');
+      
+      // Legacy fields
+      setPhone('');
+      setParentName((student.motherFirstName || '') + ' ' + (student.motherLastName || ''));
+      setParentPhone(student.motherPhone || student.fatherPhone || '');
     }
   }, [student]);
 
@@ -83,7 +96,7 @@ export default function EditStudentPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!firstName.trim() || !lastName.trim() || !parentName.trim() || !parentPhone.trim() || !birthDate || selectedCourses.length === 0) {
+    if (!firstName.trim() || !lastName.trim() || !birthDate || selectedCourses.length === 0) {
       alert('Lütfen tüm zorunlu alanları doldurun ve en az bir kurs seçin.');
       return;
     }
@@ -92,12 +105,15 @@ export default function EditStudentPage() {
       id: studentId,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      phone: phone.trim() || undefined,
-      parentName: parentName.trim(),
-      parentPhone: parentPhone.trim(),
+      motherFirstName: motherFirstName.trim() || undefined,
+      motherLastName: motherLastName.trim() || undefined,
+      motherPhone: motherPhone.trim() || undefined,
+      fatherFirstName: fatherFirstName.trim() || undefined,
+      fatherLastName: fatherLastName.trim() || undefined,
+      fatherPhone: fatherPhone.trim() || undefined,
       birthDate: new Date(birthDate),
       gender,
-      courseIds: selectedCourses,
+      courseLevelIds: selectedCourses,
     });
   };
 

@@ -294,9 +294,8 @@ export default function TakeAttendancePage() {
                 <Select 
                   value={selectedCourseLevelId} 
                   onValueChange={handleCourseLevelChange}
-                  disabled={!selectedCourseId}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger disabled={!selectedCourseId}>
                     <SelectValue placeholder={selectedCourseId ? "Seviye seçin" : "Önce kurs seçin"} />
                   </SelectTrigger>
                   <SelectContent>

@@ -64,7 +64,7 @@ export default function StudentDetailPage({ params }: StudentDetailPageProps) {
   }
 
   const totalAttendances = recentAttendances.length;
-  const presentCount = recentAttendances.filter(a => a.isPresent).length;
+  const presentCount = recentAttendances.filter(a => a.status === 'PRESENT').length;
   const attendanceRate = totalAttendances > 0 ? Math.round((presentCount / totalAttendances) * 100) : 0;
 
   return (

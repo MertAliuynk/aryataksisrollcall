@@ -232,9 +232,8 @@ export default function PaymentControlPage() {
               <Select 
                 value={selectedCourseLevel} 
                 onValueChange={setSelectedCourseLevel}
-                disabled={!selectedCourse}
               >
-                <SelectTrigger>
+                <SelectTrigger disabled={!selectedCourse}>
                   <SelectValue placeholder="Seviye seçin" />
                 </SelectTrigger>
                 <SelectContent>
@@ -325,7 +324,7 @@ export default function PaymentControlPage() {
                       <label className="block text-sm font-medium mb-2">Ödeme Durumu</label>
                       <Select
                         value={paymentData[student.studentId]?.status || 'PENDING'}
-                        onValueChange={(value: PaymentStatus) => handlePaymentStatusChange(student.studentId, value)}
+                        onValueChange={(value: string) => handlePaymentStatusChange(student.studentId, value as PaymentStatus)}
                       >
                         <SelectTrigger>
                           <SelectValue />
