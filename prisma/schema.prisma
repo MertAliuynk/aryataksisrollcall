@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id               String   @id @default(cuid())
+  firstName        String
+  lastName         String
+  motherFirstName  String?
+  motherLastName   String?
+  motherPhone      String?
+  fatherFirstName  String?
+  fatherLastName   String?
+  fatherPhone      String?
+  birthDate        DateTime
+  gender           String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // İlişkiler
+  studentCourses StudentCourse[]
+  attendances    Attendance[]
+  payments       Payment[]
+
+  @@map("students")
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // İlişkiler
+  courseLevels   CourseLevel[]
+  studentCourses StudentCourse[]
+  attendances    Attendance[]
+  payments       Payment[]
+
+  @@map("courses")
+}
+
+model CourseLevel {
+  id             String   @id @default(cuid())
+  courseId       String
+  level          String   // "temel", "teknik", "performans"
+  attendanceDays String   // JSON string: "monday,wednesday,friday"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // İlişkiler
+  course         Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  studentCourses StudentCourse[]
+  attendances    Attendance[]
+  payments       Payment[]
+
+  @@map("course_levels")
+}
+
+model StudentCourse {
+  id            String @id @default(cuid())
+  studentId     String
+  courseId      String
+  courseLevelId String
+  enrolledAt    DateTime @default(now())
+
+  // İlişkiler
+  student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseLevel CourseLevel @relation(fields: [courseLevelId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseLevelId])
+  @@map("student_courses")
+}
+
+model Attendance {
+  id            String           @id @default(cuid())
+  studentId     String
+  courseId      String
+  courseLevelId String
+  date          DateTime
+  status        AttendanceStatus @default(PRESENT)
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  // İlişkiler
+  student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseLevel CourseLevel @relation(fields: [courseLevelId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseLevelId, date])
+  @@map("attendances")
+}
+
+enum AttendanceStatus {
+  PRESENT   // Mevcut
+  ABSENT    // Yok
+  EXCUSED   // Mazeretli
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  studentId     String
+  courseId      String
+  courseLevelId String
+  month         Int           // 1-12 (Ocak-Aralık)
+  year          Int           // 2024, 2025, vb.
+  status        PaymentStatus @default(PENDING)
+  amount        Float?        // Ödeme tutarı
+  notes         String?       // Notlar
+  paidAt        DateTime?     // Ödeme tarihi
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // İlişkiler
+  student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseLevel CourseLevel @relation(fields: [courseLevelId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseLevelId, month, year])
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PAID      // Ödendi
+  PENDING   // Ödenmedi
+  EXCUSED   // Mazeretli
+}
+
+model Staff {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String   // Hashed password
+  firstName String
+  lastName  String
+  email     String?
+  role      String   @default("staff") // "admin", "staff"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("staff")
+}
