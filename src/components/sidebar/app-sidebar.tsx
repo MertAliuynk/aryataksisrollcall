@@ -8,7 +8,7 @@ export function AppSidebar() {
     <Sidebar className="hidden md:flex">
       <SidebarHeader className="p-6">
         <h1 className="text-xl font-bold text-gray-900">
-          Spor Kulübü
+          Arya Taksis
         </h1>
         <p className="text-sm text-gray-600">
           Yoklama Sistemi

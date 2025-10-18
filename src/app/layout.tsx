@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Spor Kulübü Yoklama Sistemi",
+  title: "Arya Taksis",
   description: "Modern yoklama takip ve yönetim sistemi",
 };
 

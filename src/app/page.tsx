@@ -181,7 +181,7 @@ export default function HomePage() {
               </h1>
               
               <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-                Spor kulübünüzün tüm yoklama işlemlerini dijital ortamda yönetin. 
+                Arya Taksis'nin tüm yoklama işlemlerini dijital ortamda yönetin. 
                 Hızlı, güvenilir ve kullanıcı dostu arayüzle tanışın.
               </p>
               
