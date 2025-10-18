@@ -289,9 +289,8 @@ export default function AttendanceTrackingPage() {
                 <Select 
                   value={selectedCourseLevelId} 
                   onValueChange={setSelectedCourseLevelId}
-                  disabled={!selectedCourseId}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger disabled={!selectedCourseId}>
                     <SelectValue placeholder={selectedCourseId ? "Tüm seviyeler" : "Önce kurs seçin"} />
                   </SelectTrigger>
                   <SelectContent>
