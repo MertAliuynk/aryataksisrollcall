@@ -212,7 +212,7 @@ export default function CourseDetailPage() {
                 </div>
                 
                 <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{course.attendanceDays.length}</div>
+                  <div className="text-2xl font-bold text-green-600">{course.courseLevels?.[0]?.attendanceDays?.split(',').length || 0}</div>
                   <div className="text-sm text-gray-600">Haftalık Ders Günü</div>
                 </div>
                 
