@@ -129,7 +129,7 @@ export default function CourseDetailPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-700">Kurs Günleri</label>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {getDayLabels(course.attendanceDays).map((day, index) => (
+                    {getDayLabels(course.courseLevels?.[0]?.attendanceDays?.split(',') || []).map((day, index) => (
                       <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700">
                         {day}
                       </Badge>
