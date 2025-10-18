@@ -31,7 +31,6 @@ const DAYS_OF_WEEK = [
 export default function CoursesPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-
   // Kursları çek
   const { data: courses = [], isLoading, refetch } = api.course.getAll.useQuery();
 
