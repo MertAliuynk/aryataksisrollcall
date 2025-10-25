@@ -231,7 +231,7 @@ export default function CourseDetailPage() {
                       const allDays = new Set<string>();
                       (course.courseLevels || []).forEach((lvl: any) => {
                         const days = Array.isArray(lvl.attendanceDays) ? lvl.attendanceDays : (typeof lvl.attendanceDays === 'string' && lvl.attendanceDays.length ? lvl.attendanceDays.split(',') : []);
-                        days.forEach(d => allDays.add(d));
+                        days.forEach((d: string) => allDays.add(d));
                       });
                       return allDays.size;
                     })()
