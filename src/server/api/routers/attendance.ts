@@ -529,6 +529,27 @@ export const attendanceRouter = createTRPCRouter({
       return attendances;
     }),
 
+  // Tek bir yoklama kaydını güncelle (status ve notlar)
+  updateAttendance: publicProcedure
+    .input(z.object({
+      attendanceId: z.string(),
+      status: z.enum(['PRESENT', 'ABSENT', 'EXCUSED']),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { attendanceId, status, notes } = input;
+
+      const updated = await db.attendance.update({
+        where: { id: attendanceId },
+        data: {
+          status,
+          notes: notes || '',
+        },
+      });
+
+      return updated;
+    }),
+
   // Belirli bir kursun son yoklamalarını getir
   getRecentByCourse: publicProcedure
     .input(z.string())

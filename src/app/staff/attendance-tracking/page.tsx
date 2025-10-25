@@ -264,10 +264,18 @@ export default function AttendanceTrackingPage() {
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Kurs
                 </label>
-                <Select value={selectedCourseId} onValueChange={(value) => {
-                  setSelectedCourseId(value);
-                  setSelectedCourseLevelId(''); // Reset course level when course changes
-                }}>
+                <Select
+                  value={selectedCourseId}
+                  onValueChange={(value) => {
+                    setSelectedCourseId(value);
+                    setSelectedCourseLevelId(''); // Reset course level when course changes
+                  }}
+                  getDisplayValue={(val) => {
+                    if (!val) return 'Tüm kurslar';
+                    const found = courses.find((c: any) => c.id === val);
+                    return found ? found.name : val;
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Tüm kurslar" />
                   </SelectTrigger>
@@ -289,6 +297,13 @@ export default function AttendanceTrackingPage() {
                 <Select 
                   value={selectedCourseLevelId} 
                   onValueChange={setSelectedCourseLevelId}
+                  getDisplayValue={(val) => {
+                    if (val === '') return 'Tüm seviyeler';
+                    const level = courseLevels.find((l: any) => l.id === val);
+                    if (!level) return val;
+                    const levelLabels: Record<string,string> = { temel: 'Temel', teknik: 'Teknik', performans: 'Performans' };
+                    return levelLabels[level.level] || level.level;
+                  }}
                 >
                   <SelectTrigger disabled={!selectedCourseId}>
                     <SelectValue placeholder={selectedCourseId ? "Tüm seviyeler" : "Önce kurs seçin"} />
@@ -315,7 +330,15 @@ export default function AttendanceTrackingPage() {
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Öğrenci
                 </label>
-                <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                <Select
+                  value={selectedStudentId}
+                  onValueChange={setSelectedStudentId}
+                  getDisplayValue={(val) => {
+                    if (!val) return 'Tüm öğrenciler';
+                    const s = students.find((st: any) => st.id === val);
+                    return s ? `${s.firstName} ${s.lastName}` : val;
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Tüm öğrenciler" />
                   </SelectTrigger>
@@ -374,10 +397,7 @@ export default function AttendanceTrackingPage() {
               <Button variant="outline" onClick={clearFilters}>
                 Filtreleri Temizle
               </Button>
-              <Button onClick={exportData} disabled={attendanceData.length === 0}>
-                <Download className="h-4 w-4 mr-2" />
-                CSV İndir
-              </Button>
+              
             </div>
           </CardContent>
         </Card>

@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../../../compone
 import { Button } from '../../../../../components/ui/button';
 import { Input } from '../../../../../components/ui/input';
 import { Badge } from '../../../../../components/ui/badge';
-import { 
+import {
   ArrowLeft,
-  BookOpen, 
+  BookOpen,
   Save,
   AlertCircle,
-  Check
+  Check,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
@@ -33,7 +35,8 @@ export default function EditCoursePage() {
 
   const [formData, setFormData] = useState({
     name: '',
-    attendanceDays: [] as string[]
+    // levels: array of { id?, level, attendanceDays }
+    levels: [] as { id?: string; level: 'temel' | 'teknik' | 'performans'; attendanceDays: string[] }[],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -56,17 +59,47 @@ export default function EditCoursePage() {
     if (course) {
       setFormData({
         name: course.name,
-        attendanceDays: course.courseLevels?.[0]?.attendanceDays?.split(',') || []
+        levels: (course.courseLevels || []).map((lvl: any) => ({
+          id: lvl.id,
+          level: lvl.level as 'temel' | 'teknik' | 'performans',
+          attendanceDays: Array.isArray(lvl.attendanceDays) ? lvl.attendanceDays : (typeof lvl.attendanceDays === 'string' && lvl.attendanceDays.length ? lvl.attendanceDays.split(',') : []),
+        })),
       });
     }
   }, [course]);
 
-  const handleDayToggle = (dayKey: string) => {
+  const handleLevelDayToggle = (levelIndex: number, dayKey: string) => {
+    setFormData(prev => {
+      const nextLevels = prev.levels.map((l, i) => {
+        if (i !== levelIndex) return l;
+        const has = Array.isArray(l.attendanceDays) && l.attendanceDays.includes(dayKey);
+        return {
+          ...l,
+          attendanceDays: has ? l.attendanceDays.filter(d => d !== dayKey) : [...(l.attendanceDays || []), dayKey]
+        };
+      });
+      return { ...prev, levels: nextLevels };
+    });
+  };
+
+  const addLevel = () => {
     setFormData(prev => ({
       ...prev,
-      attendanceDays: prev.attendanceDays.includes(dayKey)
-        ? prev.attendanceDays.filter(day => day !== dayKey)
-        : [...prev.attendanceDays, dayKey]
+      levels: [...prev.levels, { level: 'temel', attendanceDays: [] }]
+    }));
+  };
+
+  const removeLevel = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      levels: prev.levels.filter((_, i) => i !== index)
+    }));
+  };
+
+  const setLevelValue = (index: number, value: 'temel' | 'teknik' | 'performans') => {
+    setFormData(prev => ({
+      ...prev,
+      levels: prev.levels.map((l, i) => i === index ? { ...l, level: value } : l)
     }));
   };
 
@@ -78,26 +111,39 @@ export default function EditCoursePage() {
       return;
     }
 
-    if (formData.attendanceDays.length === 0) {
-      alert('En az bir ders günü seçmelisiniz!');
-      return;
-    }
+    // removed legacy check for formData.attendanceDays (now levels[] holds attendanceDays)
 
     setIsSubmitting(true);
     
     try {
-      if (!course || !course.courseLevels || !course.courseLevels[0]) {
-        alert('Kurs seviyesi bulunamadı!');
+      if (!course) {
+        alert('Kurs bilgisi bulunamadı!');
         setIsSubmitting(false);
         return;
       }
+
+      if (!formData.levels || formData.levels.length === 0) {
+        alert('En az bir seviye eklemelisiniz!');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // basic validation: each level must have at least one attendance day
+      for (const lvl of formData.levels) {
+        if (!lvl.attendanceDays || lvl.attendanceDays.length === 0) {
+          alert('Her seviye için en az bir ders günü seçmelisiniz!');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       await updateCourseMutation.mutateAsync({
         id: courseId,
         name: formData.name.trim(),
-        levels: [{
-          level: course.courseLevels[0].level as "temel" | "teknik" | "performans",
-          attendanceDays: formData.attendanceDays
-        }]
+        levels: formData.levels.map(l => ({
+          level: l.level,
+          attendanceDays: l.attendanceDays,
+        }))
       });
     } catch (error) {
       console.error('Güncelleme hatası:', error);
@@ -185,56 +231,74 @@ export default function EditCoursePage() {
                 />
               </div>
 
-              {/* Ders Günleri */}
+              {/* Levels editor */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Ders Günleri *
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {DAYS_OF_WEEK.map((day) => (
-                    <div
-                      key={day.key}
-                      onClick={() => handleDayToggle(day.key)}
-                      className={`
-                        relative p-3 rounded-lg border-2 cursor-pointer transition-all duration-200
-                        ${formData.attendanceDays.includes(day.key)
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                        }
-                      `}
-                    >
-                      <div className="text-center">
-                        <div className="font-medium">{day.label}</div>
-                        {formData.attendanceDays.includes(day.key) && (
-                          <Check className="h-4 w-4 text-blue-600 mx-auto mt-1" />
-                        )}
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-gray-700">Seviyeler</label>
+                  <Button size="sm" variant="ghost" onClick={addLevel}>
+                    <Plus className="h-4 w-4 mr-1" /> Yeni Seviye Ekle
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {formData.levels.map((lvl, idx) => (
+                    <div key={idx} className="p-3 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <label className="text-sm font-medium">Seviye:</label>
+                          <select
+                            value={lvl.level}
+                            onChange={(e) => setLevelValue(idx, e.target.value as any)}
+                            className="border px-2 py-1 rounded"
+                          >
+                            <option value="temel">Temel</option>
+                            <option value="teknik">Teknik</option>
+                            <option value="performans">Performans</option>
+                          </select>
+                        </div>
+                        <Button size="sm" variant="destructive" onClick={() => removeLevel(idx)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {DAYS_OF_WEEK.map((day) => (
+                          <div
+                            key={day.key}
+                            onClick={() => handleLevelDayToggle(idx, day.key)}
+                            className={`
+                              relative p-2 rounded-lg border-2 cursor-pointer transition-all duration-200 text-center
+                              ${lvl.attendanceDays.includes(day.key)
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                              }
+                            `}
+                          >
+                            <div className="font-medium">{day.label}</div>
+                            {lvl.attendanceDays.includes(day.key) && (
+                              <Check className="h-4 w-4 text-blue-600 mx-auto mt-1" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* summary badges */}
+                      {lvl.attendanceDays.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {lvl.attendanceDays.map((dayKey) => {
+                            const day = DAYS_OF_WEEK.find(d => d.key === dayKey);
+                            return (
+                              <Badge key={dayKey} variant="outline" className="bg-blue-50 text-blue-700">
+                                {day?.label}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  En az bir gün seçmelisiniz
-                </p>
               </div>
-
-              {/* Seçili Günler Özeti */}
-              {formData.attendanceDays.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Seçili Günler
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.attendanceDays.map((dayKey) => {
-                      const day = DAYS_OF_WEEK.find(d => d.key === dayKey);
-                      return (
-                        <Badge key={dayKey} variant="outline" className="bg-blue-50 text-blue-700">
-                          {day?.label}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               {/* Submit Button */}
               <div className="flex gap-4 pt-6">

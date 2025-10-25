@@ -31,9 +31,11 @@ type ViewMode = 'card' | 'table';
 
 export default function StaffStudentsPage() {
   const router = useRouter();
+  const ctx = api.useContext();
   const [search, setSearch] = useState('');
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [selectedGender, setSelectedGender] = useState<string>('');
+  const [selectedLevel, setSelectedLevel] = useState<string>('');
   const [sortBy, setSortBy] = useState<'firstName' | 'lastName' | 'createdAt' | 'birthDate'>('firstName');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<ViewMode>('card');
@@ -43,11 +45,18 @@ export default function StaffStudentsPage() {
     search: search || undefined,
     courseId: selectedCourse || undefined,
     gender: (selectedGender && selectedGender !== '') ? selectedGender as 'male' | 'female' : undefined,
+    level: (selectedLevel && selectedLevel !== '') ? selectedLevel as 'temel' | 'teknik' | 'performans' : undefined,
     sortBy,
     sortOrder,
   };
   
   const { data: students, isLoading } = api.student.getAllWithFilters.useQuery(queryParams);
+
+  const deleteStudent = api.student.delete.useMutation({
+    onSuccess: async () => {
+      await ctx.student.getAllWithFilters.invalidate();
+    }
+  });
 
   // Kursları getir (filtreleme için)
   const { data: courses } = api.course.getAll.useQuery();
@@ -128,7 +137,7 @@ export default function StaffStudentsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl px-4 py-6 lg:p-8 text-white overflow-hidden">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
@@ -139,7 +148,7 @@ export default function StaffStudentsPage() {
               Toplam {students?.length || 0} öğrenci kayıtlı
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {/* Görünüm Seçimi */}
             <div className="flex bg-white/20 rounded-lg p-1">
               <Button
@@ -284,6 +293,22 @@ export default function StaffStudentsPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Seviye Filtresi */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Seviye</label>
+              <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                <SelectTrigger className="border-gray-200 focus:border-blue-400 focus:ring-blue-200">
+                  <SelectValue placeholder="Seviye seç" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Tümü</SelectItem>
+                  <SelectItem value="temel">Temel</SelectItem>
+                  <SelectItem value="teknik">Teknik</SelectItem>
+                  <SelectItem value="performans">Performans</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -352,13 +377,28 @@ export default function StaffStudentsPage() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap hidden md:table-cell">
                         <div className="text-sm text-gray-900 min-w-0">
-                          <div className="flex items-center gap-1 mb-1">
+                          {/* Mother */}
+                          <div className="text-xs text-gray-500">Anne</div>
+                          <div className="flex items-center gap-1 mb-2">
                             <Phone className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{student.phone || 'Telefon yok'}</span>
+                            <span className="truncate">
+                              {[student.motherFirstName, student.motherLastName].filter(Boolean).join(' ') || '—'}
+                              {student.motherPhone ? (
+                                <span className="text-xs text-gray-500"> {` • ${student.motherPhone}`}</span>
+                              ) : null}
+                            </span>
                           </div>
+
+                          {/* Father */}
+                          <div className="text-xs text-gray-500">Baba</div>
                           <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{student.email || 'Email yok'}</span>
+                            <Phone className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">
+                              {[student.fatherFirstName, student.fatherLastName].filter(Boolean).join(' ') || '—'}
+                              {student.fatherPhone ? (
+                                <span className="text-xs text-gray-500"> {` • ${student.fatherPhone}`}</span>
+                              ) : null}
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -397,7 +437,7 @@ export default function StaffStudentsPage() {
                                 variant="secondary" 
                                 className="text-xs bg-blue-100 text-blue-800"
                               >
-                                {course.name}
+                                {course.name} {course.level ? `• ${course.level === 'temel' ? 'Temel' : course.level === 'teknik' ? 'Teknik' : 'Performans'}` : ''}
                               </Badge>
                             ))
                           ) : (
@@ -429,6 +469,24 @@ export default function StaffStudentsPage() {
                             title="Düzenle"
                           >
                             <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={async () => {
+                              const ok = confirm('Bu öğrenciyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');
+                              if (!ok) return;
+                              try {
+                                await deleteStudent.mutateAsync({ id: student.id });
+                              } catch (e) {
+                                console.error(e);
+                                alert('Silme işlemi sırasında hata oluştu');
+                              }
+                            }}
+                            className="h-8 w-8 p-0"
+                            title="Sil"
+                          >
+                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </Button>
                         </div>
                       </td>
@@ -507,7 +565,7 @@ export default function StaffStudentsPage() {
                           variant="secondary" 
                           className="text-xs bg-blue-100 text-blue-800"
                         >
-                          {course.name}
+                          {course.name} {course.level ? `• ${course.level === 'temel' ? 'Temel' : course.level === 'teknik' ? 'Teknik' : 'Performans'}` : ''}
                         </Badge>
                       ))
                     ) : (
@@ -539,6 +597,24 @@ export default function StaffStudentsPage() {
                   >
                     <GraduationCap className="h-3 w-3 mr-1" />
                     Yoklama
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const ok = confirm('Bu öğrenciyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');
+                      if (!ok) return;
+                      try {
+                        await deleteStudent.mutateAsync({ id: student.id });
+                      } catch (err) {
+                        console.error(err);
+                        alert('Silme sırasında hata oluştu');
+                      }
+                    }}
+                    className="flex-1"
+                  >
+                    Sil
                   </Button>
                 </div>
               </CardContent>

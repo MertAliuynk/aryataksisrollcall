@@ -19,8 +19,15 @@ export const courseRouter = createTRPCRouter({
       },
     });
 
+    // Normalize courseLevels.attendanceDays from DB (stored as comma string) to string[]
     return courses.map((course: any) => ({
       ...course,
+      courseLevels: course.courseLevels?.map((level: any) => ({
+        ...level,
+        attendanceDays: typeof level.attendanceDays === 'string' && level.attendanceDays.length > 0
+          ? level.attendanceDays.split(',')
+          : [],
+      })) || [],
       studentCount: course._count.studentCourses,
     }));
   }),
@@ -47,6 +54,12 @@ export const courseRouter = createTRPCRouter({
 
       return {
         ...course,
+        courseLevels: course.courseLevels?.map((level: any) => ({
+          ...level,
+          attendanceDays: typeof level.attendanceDays === 'string' && level.attendanceDays.length > 0
+            ? level.attendanceDays.split(',')
+            : [],
+        })) || [],
         studentCount: course._count.studentCourses,
       };
     }),
@@ -76,23 +89,48 @@ export const courseRouter = createTRPCRouter({
           },
         });
 
-        // Mevcut seviyeleri sil
-        await tx.courseLevel.deleteMany({
-          where: { courseId: id },
+        // Mevcut seviyeleri al
+        const existingLevels = await tx.courseLevel.findMany({ where: { courseId: id } });
+
+        // Map existing by level enum for easy lookup
+        const existingByLevel: Record<string, any> = {};
+        existingLevels.forEach((l: any) => {
+          existingByLevel[l.level] = l;
         });
 
-        // Yeni seviyeleri oluştur
-        const courseLevels = await Promise.all(
-          levels.map((level) =>
-            tx.courseLevel.create({
-              data: {
-                courseId: id,
-                level: level.level,
-                attendanceDays: level.attendanceDays.join(','),
-              },
-            })
-          )
-        );
+        const processedLevelIds: string[] = [];
+
+        // Upsert: update attendanceDays for existing levels with same enum, or create new ones
+        for (const lvl of levels) {
+          const attendanceStr = lvl.attendanceDays.join(',');
+          const existing = existingByLevel[lvl.level];
+          if (existing) {
+            const updated = await tx.courseLevel.update({
+              where: { id: existing.id },
+              data: { attendanceDays: attendanceStr },
+            });
+            processedLevelIds.push(updated.id);
+          } else {
+            const created = await tx.courseLevel.create({
+              data: { courseId: id, level: lvl.level, attendanceDays: attendanceStr },
+            });
+            processedLevelIds.push(created.id);
+          }
+        }
+
+        // Delete any existing levels that are not present in the new input AND have no enrolled students
+        const toDelete = existingLevels.filter((l: any) => !processedLevelIds.includes(l.id));
+        for (const del of toDelete) {
+          const scCount = await tx.studentCourse.count({ where: { courseLevelId: del.id } });
+          if (scCount === 0) {
+            await tx.courseLevel.delete({ where: { id: del.id } });
+          } else {
+            // If there are students on this level, skip deletion to avoid orphaning studentCourse records
+            // and optionally keep level as-is. We do nothing here.
+          }
+        }
+
+        const courseLevels = await tx.courseLevel.findMany({ where: { courseId: id } });
 
         return { course, courseLevels };
       });

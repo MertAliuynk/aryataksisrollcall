@@ -168,7 +168,7 @@ export default function AddStudentPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
-                <div>
+                <div className="min-w-0">
                   <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
                     Ad *
                   </Label>
@@ -181,7 +181,7 @@ export default function AddStudentPage() {
                     required
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
                     Soyad *
                   </Label>
@@ -197,7 +197,7 @@ export default function AddStudentPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <div>
+                <div className="min-w-0">
                   <Label htmlFor="birthDate" className="text-sm font-medium text-gray-700">
                     Doğum Tarihi
                   </Label>
@@ -208,11 +208,11 @@ export default function AddStudentPage() {
                       type="date"
                       value={formData.birthDate}
                       onChange={(e) => handleInputChange('birthDate', e.target.value)}
-                      className="pl-10"
+                      className="pl-10 max-w-full"
                     />
                   </div>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <Label htmlFor="gender" className="text-sm font-medium text-gray-700">
                     Cinsiyet
                   </Label>
@@ -269,13 +269,21 @@ export default function AddStudentPage() {
                                         {info.label}
                                       </span>
                                       <span className="text-gray-600 ml-2 text-xs">
-                                        ({level.attendanceDays.split(',').map((day: string) => {
+                                        ({(() => {
+                                          const raw = level.attendanceDays;
+                                          const days: string[] = Array.isArray(raw)
+                                            ? raw
+                                            : typeof raw === 'string' && raw.length > 0
+                                              ? raw.split(',')
+                                              : [];
+
                                           const dayMap: { [key: string]: string } = {
                                             monday: 'Pzt', tuesday: 'Sal', wednesday: 'Çar',
                                             thursday: 'Per', friday: 'Cum', saturday: 'Cmt', sunday: 'Paz'
                                           };
-                                          return dayMap[day] || day;
-                                        }).join(', ')})
+
+                                          return days.map((day: string) => dayMap[day] || day).join(', ');
+                                        })()})
                                       </span>
                                     </label>
                                   </div>
@@ -312,7 +320,7 @@ export default function AddStudentPage() {
               <div>
                 <h4 className="text-sm font-semibold text-gray-800 mb-3">Anne Bilgileri</h4>
                 <div className="grid md:grid-cols-3 gap-4">
-                  <div>
+                  <div className="min-w-0">
                     <Label htmlFor="motherFirstName" className="text-sm font-medium text-gray-700">
                       Anne Adı
                     </Label>
@@ -324,7 +332,7 @@ export default function AddStudentPage() {
                       className="mt-1"
                     />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <Label htmlFor="motherLastName" className="text-sm font-medium text-gray-700">
                       Anne Soyadı
                     </Label>
@@ -336,7 +344,7 @@ export default function AddStudentPage() {
                       className="mt-1"
                     />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <Label htmlFor="motherPhone" className="text-sm font-medium text-gray-700">
                       Anne Telefonu
                     </Label>
@@ -358,7 +366,7 @@ export default function AddStudentPage() {
               <div>
                 <h4 className="text-sm font-semibold text-gray-800 mb-3">Baba Bilgileri</h4>
                 <div className="grid md:grid-cols-3 gap-4">
-                  <div>
+                  <div className="min-w-0">
                     <Label htmlFor="fatherFirstName" className="text-sm font-medium text-gray-700">
                       Baba Adı
                     </Label>
@@ -370,7 +378,7 @@ export default function AddStudentPage() {
                       className="mt-1"
                     />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <Label htmlFor="fatherLastName" className="text-sm font-medium text-gray-700">
                       Baba Soyadı
                     </Label>
@@ -382,7 +390,7 @@ export default function AddStudentPage() {
                       className="mt-1"
                     />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <Label htmlFor="fatherPhone" className="text-sm font-medium text-gray-700">
                       Baba Telefonu
                     </Label>

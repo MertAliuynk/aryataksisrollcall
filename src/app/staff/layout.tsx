@@ -94,7 +94,7 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+  <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 overflow-x-hidden">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
@@ -104,7 +104,7 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full w-80 bg-white shadow-xl border-r border-gray-200 transform transition-transform duration-300 ease-in-out z-50 ${
+      <div className={`fixed left-0 top-0 h-full w-80 bg-white shadow-xl border-r border-gray-200 transform transition-transform duration-300 ease-in-out z-50 flex flex-col ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       } lg:translate-x-0`}>
         
@@ -131,8 +131,8 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
           </div>
         </div>
 
-        {/* Navigation Menu */}
-        <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
+  {/* Navigation Menu */}
+  <nav className="p-4 space-y-2 flex-1 overflow-y-auto min-h-0">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -163,8 +163,8 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
           })}
         </nav>
 
-        {/* Sidebar Footer */}
-        <div className="p-4 border-t border-gray-200">
+  {/* Sidebar Footer */}
+  <div className="p-4 border-t border-gray-200 flex-shrink-0">
           <Link href="/">
             <Button variant="outline" className="w-full mb-2">
               <Home className="h-4 w-4 mr-2" />
@@ -204,8 +204,10 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
         </div>
 
         {/* Content Area */}
-        <main className="p-6">
-          {children}
+        <main className="p-6 max-w-full overflow-x-hidden box-border">
+          <div className="w-full max-w-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -16,6 +16,7 @@ export default function EditStudentPage() {
   const router = useRouter();
   const params = useParams();
   const studentId = params.id as string;
+  const ctx = api.useContext();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -27,12 +28,11 @@ export default function EditStudentPage() {
   const [fatherPhone, setFatherPhone] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [gender, setGender] = useState<'male' | 'female'>('male');
-  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
+  const [selectedCourseLevelIds, setSelectedCourseLevelIds] = useState<string[]>([]);
   
   // Legacy fields - remove if not needed
   const [phone, setPhone] = useState('');
-  const [parentName, setParentName] = useState('');
-  const [parentPhone, setParentPhone] = useState('');
+  // legacy combined parent fields removed - we now edit mother/father separately
 
   // Öğrenci bilgilerini getir
   const { data: student, isLoading: studentLoading } = api.student.getById.useQuery({
@@ -57,6 +57,32 @@ export default function EditStudentPage() {
     },
   });
 
+  const deleteStudent = api.student.delete.useMutation({
+    onSuccess: async () => {
+      await ctx.student.getAllWithFilters.invalidate();
+      router.push('/staff/students');
+    }
+  });
+
+  // Öğrencinin son yoklamalarını getir
+  const { data: recentAttendances = [] } = api.attendance.getStudentRecentAttendances.useQuery({ studentId, limit: 10 });
+
+  const [editingAttendanceId, setEditingAttendanceId] = useState<string | null>(null);
+  const [editingStatus, setEditingStatus] = useState<'PRESENT' | 'ABSENT' | 'EXCUSED'>('ABSENT');
+  const [editingNotes, setEditingNotes] = useState<string>('');
+
+  const updateAttendance = api.attendance.updateAttendance.useMutation({
+    onSuccess: async () => {
+      setEditingAttendanceId(null);
+      await ctx.attendance.getStudentRecentAttendances.invalidate();
+      await ctx.attendance.getAttendanceRecords.invalidate();
+    },
+    onError: (err) => {
+      console.error('Yoklama güncelleme hatası', err);
+      alert('Yoklama güncellerken hata oluştu');
+    }
+  });
+
   // Öğrenci verilerini form alanlarına yükle
   useEffect(() => {
     if (student) {
@@ -71,32 +97,30 @@ export default function EditStudentPage() {
       setBirthDate(student.birthDate ? new Date(student.birthDate).toISOString().split('T')[0] : '');
       setGender(student.gender as 'male' | 'female');
       
-      // Legacy fields
+      // legacy combined parent fields removed; keep phone blank or use student.phone if available
       setPhone('');
-      setParentName((student.motherFirstName || '') + ' ' + (student.motherLastName || ''));
-      setParentPhone(student.motherPhone || student.fatherPhone || '');
     }
   }, [student]);
 
-  // Öğrencinin kurslarını yükle
+  // Öğrencinin kurs seviyelerini yükle (levelId olarak)
   useEffect(() => {
     if (studentCourses) {
-      setSelectedCourses(studentCourses.map((course: any) => course.id));
+      setSelectedCourseLevelIds(studentCourses.map((course: any) => course.levelId));
     }
   }, [studentCourses]);
 
-  const handleCourseToggle = (courseId: string) => {
-    setSelectedCourses(prev => 
-      prev.includes(courseId) 
-        ? prev.filter(id => id !== courseId)
-        : [...prev, courseId]
+  const handleCourseToggle = (courseLevelId: string) => {
+    setSelectedCourseLevelIds(prev => 
+      prev.includes(courseLevelId) 
+        ? prev.filter(id => id !== courseLevelId)
+        : [...prev, courseLevelId]
     );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!firstName.trim() || !lastName.trim() || !birthDate || selectedCourses.length === 0) {
+    if (!firstName.trim() || !lastName.trim() || !birthDate || selectedCourseLevelIds.length === 0) {
       alert('Lütfen tüm zorunlu alanları doldurun ve en az bir kurs seçin.');
       return;
     }
@@ -113,7 +137,7 @@ export default function EditStudentPage() {
       fatherPhone: fatherPhone.trim() || undefined,
       birthDate: new Date(birthDate),
       gender,
-      courseLevelIds: selectedCourses,
+      courseLevelIds: selectedCourseLevelIds,
     });
   };
 
@@ -177,6 +201,24 @@ export default function EditStudentPage() {
               Öğrenci Listesi
             </Button>
           </Link>
+          <div className="ml-auto">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={async () => {
+                const ok = confirm('Bu öğrenciyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');
+                if (!ok) return;
+                try {
+                  await deleteStudent.mutateAsync({ id: studentId });
+                } catch (err) {
+                  console.error(err);
+                  alert('Silme sırasında hata oluştu');
+                }
+              }}
+            >
+              Sil
+            </Button>
+          </div>
         </div>
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
           <User className="h-8 w-8" />
@@ -271,35 +313,88 @@ export default function EditStudentPage() {
               </div>
             </div>
 
-            {/* Veli Bilgileri */}
+            {/* Veli Bilgileri - Anne / Baba ayrı alanlar */}
             <div className="border-t pt-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Veli Bilgileri</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="parentName" className="text-sm font-medium text-gray-700">
-                    Veli Adı *
-                  </Label>
-                  <Input
-                    id="parentName"
-                    value={parentName}
-                    onChange={(e) => setParentName(e.target.value)}
-                    placeholder="Veli adı soyadı"
-                    className="border-gray-200 focus:border-blue-400 focus:ring-blue-200"
-                  />
+                {/* Anne */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-700">Anne</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="motherFirstName" className="text-sm font-medium text-gray-700">İsim</Label>
+                    <Input
+                      id="motherFirstName"
+                      value={motherFirstName}
+                      onChange={(e) => setMotherFirstName(e.target.value)}
+                      placeholder="Anne ismi"
+                      className="border-gray-200 focus:border-blue-400 focus:ring-blue-200"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="motherLastName" className="text-sm font-medium text-gray-700">Soyisim</Label>
+                    <Input
+                      id="motherLastName"
+                      value={motherLastName}
+                      onChange={(e) => setMotherLastName(e.target.value)}
+                      placeholder="Anne soyismi"
+                      className="border-gray-200 focus:border-blue-400 focus:ring-blue-200"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="motherPhone" className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                      <Phone className="h-4 w-4" />
+                      Telefon
+                    </Label>
+                    <Input
+                      id="motherPhone"
+                      value={motherPhone}
+                      onChange={(e) => setMotherPhone(e.target.value)}
+                      placeholder="Anne telefon numarası"
+                      className="border-gray-200 focus:border-blue-400 focus:ring-blue-200"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="parentPhone" className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                    <Phone className="h-4 w-4" />
-                    Veli Telefonu *
-                  </Label>
-                  <Input
-                    id="parentPhone"
-                    value={parentPhone}
-                    onChange={(e) => setParentPhone(e.target.value)}
-                    placeholder="Veli telefon numarası"
-                    className="border-gray-200 focus:border-blue-400 focus:ring-blue-200"
-                  />
+                {/* Baba */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-700">Baba</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="fatherFirstName" className="text-sm font-medium text-gray-700">İsim</Label>
+                    <Input
+                      id="fatherFirstName"
+                      value={fatherFirstName}
+                      onChange={(e) => setFatherFirstName(e.target.value)}
+                      placeholder="Baba ismi"
+                      className="border-gray-200 focus:border-blue-400 focus:ring-blue-200"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="fatherLastName" className="text-sm font-medium text-gray-700">Soyisim</Label>
+                    <Input
+                      id="fatherLastName"
+                      value={fatherLastName}
+                      onChange={(e) => setFatherLastName(e.target.value)}
+                      placeholder="Baba soyismi"
+                      className="border-gray-200 focus:border-blue-400 focus:ring-blue-200"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="fatherPhone" className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                      <Phone className="h-4 w-4" />
+                      Telefon
+                    </Label>
+                    <Input
+                      id="fatherPhone"
+                      value={fatherPhone}
+                      onChange={(e) => setFatherPhone(e.target.value)}
+                      placeholder="Baba telefon numarası"
+                      className="border-gray-200 focus:border-blue-400 focus:ring-blue-200"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -311,24 +406,112 @@ export default function EditStudentPage() {
                 Kurs Seçimi *
               </h3>
               {courses && courses.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-4">
                   {courses.map((course: any) => (
-                    <div key={course.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
-                      <Checkbox
-                        id={`course-${course.id}`}
-                        checked={selectedCourses.includes(course.id)}
-                        onCheckedChange={() => handleCourseToggle(course.id)}
-                      />
-                      <Label htmlFor={`course-${course.id}`} className="flex-1 cursor-pointer">
-                        <span className="font-medium">{course.name}</span>
-                        <span className="block text-sm text-gray-500">{course.description}</span>
-                      </Label>
+                    <div key={course.id} className="p-3 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <div className="font-medium">{course.name}</div>
+                          <div className="text-sm text-gray-500">{course.description}</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {course.courseLevels && course.courseLevels.length > 0 ? (
+                          course.courseLevels.map((level: any) => (
+                            <label key={level.id} className="flex items-center gap-3 p-2 border rounded-md hover:bg-gray-50 cursor-pointer">
+                              <Checkbox
+                                id={`level-${level.id}`}
+                                checked={selectedCourseLevelIds.includes(level.id)}
+                                onCheckedChange={() => handleCourseToggle(level.id)}
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">{level.level === 'temel' ? 'Temel' : level.level === 'teknik' ? 'Teknik' : 'Performans'}</div>
+                                <div className="text-xs text-gray-500">Günler: {(() => {
+                                  const raw = level.attendanceDays;
+                                  const days: string[] = Array.isArray(raw)
+                                    ? raw
+                                    : typeof raw === 'string' && raw.length > 0
+                                      ? raw.split(',')
+                                      : [];
+                                  return days.join(', ');
+                                })()}</div>
+                              </div>
+                            </label>
+                          ))
+                        ) : (
+                          <div className="text-sm text-gray-500">Seviye bilgisi yok</div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-gray-600">Henüz kurs bulunmuyor.</p>
               )}
+
+              {/* Geçmiş Yoklamalar (Düzenle) */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Geçmiş Yoklamalar</h3>
+                {recentAttendances.length === 0 ? (
+                  <p className="text-sm text-gray-600">Henüz yoklama kaydı bulunmuyor.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {recentAttendances.map((att: any) => (
+                      <div key={att.id} className="p-3 border rounded-md">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="font-medium">{att.course?.name || '—'}</div>
+                            <div className="text-sm text-gray-500">{new Date(att.date).toLocaleString('tr-TR')}</div>
+                            <div className="mt-2">Notlar: <span className="text-gray-700">{att.notes || '-'}</span></div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="text-sm font-medium">Durum: <span className="ml-1 font-semibold">{(() => {
+                                const map: Record<string,string> = { PRESENT: 'Geldi', ABSENT: 'Yok', EXCUSED: 'Mazeretli' };
+                                return map[att.status] ?? att.status;
+                              })()}</span></div>
+                            <div className="flex gap-2">
+                              <Button type="button" size="sm" variant="outline" onClick={() => {
+                                setEditingAttendanceId(att.id);
+                                setEditingStatus(att.status as any);
+                                setEditingNotes(att.notes || '');
+                              }}>
+                                Düzenle
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {editingAttendanceId === att.id && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded">
+                            <div className="flex items-center gap-3">
+                              <label className="text-sm">Durum:</label>
+                              <select value={editingStatus} onChange={(e) => setEditingStatus(e.target.value as any)} className="border px-2 py-1 rounded">
+                                <option value="PRESENT">Geldi</option>
+                                <option value="ABSENT">Yok</option>
+                                <option value="EXCUSED">Mazeretli</option>
+                              </select>
+                            </div>
+                            <div className="mt-2">
+                              <label className="text-sm">Notlar</label>
+                              <input className="w-full border px-2 py-1 rounded mt-1" value={editingNotes} onChange={(e) => setEditingNotes(e.target.value)} />
+                            </div>
+                            <div className="mt-3 flex gap-2">
+                              <Button type="button" size="sm" onClick={async () => {
+                                try {
+                                  await updateAttendance.mutateAsync({ attendanceId: att.id, status: editingStatus, notes: editingNotes });
+                                } catch (err) {
+                                  // handled in mutation
+                                }
+                              }}>Kaydet</Button>
+                              <Button type="button" size="sm" variant="ghost" onClick={() => setEditingAttendanceId(null)}>İptal</Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Submit Button */}

@@ -97,6 +97,21 @@ export default function PaymentTrackingPage() {
     return months.find(m => m.value === month)?.label || `${month}. Ay`;
   };
 
+  // Editing state for individual payment cells
+  const [editingPaymentKey, setEditingPaymentKey] = useState<string | null>(null);
+  const [editingStatus, setEditingStatus] = useState<PaymentStatus>('PENDING');
+  const [editingAmount, setEditingAmount] = useState<number | ''>('');
+  const [editingNotes, setEditingNotes] = useState<string>('');
+
+  const ctx = api.useContext();
+  const updatePaymentMutation = api.payment.updatePaymentStatus.useMutation({
+    onSuccess: async () => {
+      await ctx.payment.getPaymentHistory.invalidate();
+      await ctx.payment.getPaymentStats.invalidate();
+      setEditingPaymentKey(null);
+    },
+  });
+
   // Filter payments by search term
   const filteredPayments = paymentHistory?.filter(payment => {
     if (!searchTerm) return true;
@@ -152,7 +167,15 @@ export default function PaymentTrackingPage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">Kurs</label>
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+              <Select
+                value={selectedCourse}
+                onValueChange={setSelectedCourse}
+                getDisplayValue={(val) => {
+                  if (!val) return 'Kurs seçin';
+                  const found = courses?.find((c: any) => c.id === val);
+                  return found ? found.name : val;
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Kurs seçin" />
                 </SelectTrigger>
@@ -171,6 +194,12 @@ export default function PaymentTrackingPage() {
               <Select 
                 value={selectedCourseLevel} 
                 onValueChange={setSelectedCourseLevel}
+                getDisplayValue={(val) => {
+                  if (!val) return 'Seviye seçin';
+                  const level = courseLevels?.find((l: any) => l.id === val);
+                  if (!level) return val;
+                  return level.level.charAt(0).toUpperCase() + level.level.slice(1);
+                }}
               >
                 <SelectTrigger disabled={!selectedCourse}>
                   <SelectValue placeholder="Seviye seçin" />
@@ -287,19 +316,86 @@ export default function PaymentTrackingPage() {
                       <td className="p-3 font-medium">{studentName}</td>
                       {months.map(month => {
                         const payment = data.payments[month.value];
+                        const key = payment ? `p-${payment.id}` : `np-${data.student.id}-${month.value}`;
+                        const isEditing = editingPaymentKey === key;
+
                         return (
-                          <td key={month.value} className="text-center p-2">
+                          <td key={month.value} className="text-center p-2 align-top">
                             {payment ? (
-                              <div className="space-y-1">
-                                {getStatusBadge(payment.status)}
-                                {payment.amount && (
-                                  <div className="text-xs text-gray-600">
-                                    ₺{payment.amount.toLocaleString('tr-TR')}
+                              <div className="space-y-2">
+                                {!isEditing ? (
+                                  <div>
+                                    {getStatusBadge(payment.status)}
+                                    {payment.amount && (
+                                      <div className="text-xs text-gray-600">
+                                        ₺{payment.amount.toLocaleString('tr-TR')}
+                                      </div>
+                                    )}
+                                    <div className="mt-1">
+                                      <button
+                                        className="text-xs text-blue-600 underline"
+                                        onClick={() => {
+                                          setEditingPaymentKey(key);
+                                          setEditingStatus(payment.status as PaymentStatus);
+                                          setEditingAmount(payment.amount ?? '');
+                                          setEditingNotes(payment.notes ?? '');
+                                        }}
+                                      >
+                                        Düzenle
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <div>
+                                      <label className="text-xs block mb-1">Durum</label>
+                                      <Select value={editingStatus} onValueChange={(v) => setEditingStatus(v as PaymentStatus)}>
+                                        <SelectTrigger className="w-full">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="PAID">Ödendi</SelectItem>
+                                          <SelectItem value="PENDING">Ödenmedi</SelectItem>
+                                          <SelectItem value="EXCUSED">Mazeretli</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div>
+                                      <label className="text-xs block mb-1">Tutar (₺)</label>
+                                      <Input type="number" value={editingAmount === '' ? '' : editingAmount} onChange={(e) => setEditingAmount(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                    </div>
+                                    <div>
+                                      <label className="text-xs block mb-1">Notlar</label>
+                                      <Input value={editingNotes} onChange={(e) => setEditingNotes(e.target.value)} />
+                                    </div>
+                                    <div className="flex gap-2 justify-center mt-2">
+                                      <Button size="sm" onClick={async () => {
+                                        try {
+                                          await updatePaymentMutation.mutateAsync({
+                                            studentId: payment.studentId,
+                                            courseId: payment.courseId,
+                                            courseLevelId: payment.courseLevelId,
+                                            month: payment.month,
+                                            year: payment.year,
+                                            status: editingStatus,
+                                            amount: typeof editingAmount === 'number' ? editingAmount : undefined,
+                                            notes: editingNotes || undefined,
+                                          });
+                                        } catch (err) {
+                                          alert('Ödeme güncellenirken hata oluştu');
+                                        }
+                                      }}>
+                                        Kaydet
+                                      </Button>
+                                      <Button size="sm" variant="ghost" onClick={() => setEditingPaymentKey(null)}>İptal</Button>
+                                    </div>
                                   </div>
                                 )}
                               </div>
                             ) : (
-                              <div className="text-gray-400 text-sm">-</div>
+                              <div className="text-gray-400 text-sm">
+                                -
+                              </div>
                             )}
                           </td>
                         );

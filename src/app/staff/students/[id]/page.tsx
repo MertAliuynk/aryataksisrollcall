@@ -20,18 +20,13 @@ import {
   XCircle,
   Activity
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 
-interface StudentDetailPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function StudentDetailPage({ params }: StudentDetailPageProps) {
+export default function StudentDetailPage() {
   const router = useRouter();
-  const studentId = params.id;
+  const params = useParams();
+  const studentId = params.id as string;
 
   // Öğrenci bilgilerini çek
   const { data: student, isLoading: studentLoading } = api.student.getById.useQuery({ id: studentId });

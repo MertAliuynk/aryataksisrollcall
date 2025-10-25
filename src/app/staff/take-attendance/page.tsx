@@ -77,23 +77,32 @@ export default function TakeAttendancePage() {
   const dayNamesturkish = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
   // Seçili tarihin hangi gün olduğunu kontrol et (kurs seviyesi bazında)
+  const normalizeDays = (raw: any): string[] => {
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string' && raw.length > 0) return raw.split(',');
+    return [];
+  };
+
   const checkAttendanceDay = (date: string, courseLevel: any) => {
-    if (!courseLevel || !courseLevel.attendanceDays) return { isValid: false, message: 'Kurs seviyesi bulunamadı' };
-    
+    if (!courseLevel) return { isValid: false, message: 'Kurs seviyesi bulunamadı' };
+
+    const attendanceDays = normalizeDays(courseLevel.attendanceDays);
+    if (attendanceDays.length === 0) return { isValid: false, message: 'Bu kurs seviyesinin yoklama günleri tanımlı değil' };
+
     const selectedDate = new Date(date);
     const dayIndex = selectedDate.getDay();
     const dayName = dayNames[dayIndex];
     const turkishDayName = dayNamesturkish[dayIndex];
-    
-    if (courseLevel.attendanceDays.includes(dayName)) {
+
+    if (attendanceDays.includes(dayName)) {
       setDateError('');
       return { isValid: true, message: '' };
     } else {
-      const allowedDays = courseLevel.attendanceDays.map((day: string) => {
+      const allowedDays = attendanceDays.map((day: string) => {
         const index = dayNames.indexOf(day);
         return dayNamesturkish[index];
       }).join(', ');
-      
+
       const errorMessage = `${turkishDayName} günü "${courseLevel.course?.name || 'Bu kurs'} - ${courseLevel.level}" seviyesi için yoklama günü değil. Bu seviye için yoklama günleri: ${allowedDays}`;
       setDateError(errorMessage);
       return { isValid: false, message: errorMessage };
@@ -272,7 +281,15 @@ export default function TakeAttendancePage() {
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Kurs Seçin *
                 </label>
-                <Select value={selectedCourseId} onValueChange={handleCourseChange}>
+                <Select
+                  value={selectedCourseId}
+                  onValueChange={handleCourseChange}
+                  getDisplayValue={(val) => {
+                    if (!val) return 'Kurs seçin';
+                    const found = courses.find((c: any) => c.id === val);
+                    return found ? found.name : val;
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Kurs seçin" />
                   </SelectTrigger>
@@ -293,6 +310,13 @@ export default function TakeAttendancePage() {
                 <Select 
                   value={selectedCourseLevelId} 
                   onValueChange={handleCourseLevelChange}
+                  getDisplayValue={(val) => {
+                    if (!val) return selectedCourseId ? 'Seviye seçin' : 'Önce kurs seçin';
+                    const level = courseLevels.find((l: any) => l.id === val);
+                    if (!level) return val;
+                    const levelLabels: Record<string,string> = { TEMEL: 'Temel', TEKNIK: 'Teknik', PERFORMANS: 'Performans', temel: 'Temel', teknik: 'Teknik', performans: 'Performans' };
+                    return levelLabels[level.level] || level.level;
+                  }}
                 >
                   <SelectTrigger disabled={!selectedCourseId}>
                     <SelectValue placeholder={selectedCourseId ? "Seviye seçin" : "Önce kurs seçin"} />
@@ -392,21 +416,24 @@ export default function TakeAttendancePage() {
                     "{selectedCourse?.name} - {selectedCourseLevel.level}" Seviyesinin Yoklama Günleri
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {selectedCourseLevel.attendanceDays.map((dayKey: string) => {
-                      const index = dayNames.indexOf(dayKey);
-                      const turkishDay = dayNamesturkish[index];
-                      return (
-                        <span
-                          key={dayKey}
-                          className={`px-2 py-1 rounded text-sm font-medium text-white ${
-                            selectedCourseLevel.level === 'TEMEL' ? 'bg-green-600' :
-                            selectedCourseLevel.level === 'TEKNIK' ? 'bg-blue-600' : 'bg-purple-600'
-                          }`}
-                        >
-                          {turkishDay}
-                        </span>
-                      );
-                    })}
+                    {(() => {
+                      const days = normalizeDays(selectedCourseLevel.attendanceDays);
+                      return days.map((dayKey: string) => {
+                        const index = dayNames.indexOf(dayKey);
+                        const turkishDay = dayNamesturkish[index];
+                        return (
+                          <span
+                            key={dayKey}
+                            className={`px-2 py-1 rounded text-sm font-medium text-white ${
+                              selectedCourseLevel.level === 'TEMEL' ? 'bg-green-600' :
+                              selectedCourseLevel.level === 'TEKNIK' ? 'bg-blue-600' : 'bg-purple-600'
+                            }`}
+                          >
+                            {turkishDay}
+                          </span>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               </div>

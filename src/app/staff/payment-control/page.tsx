@@ -213,7 +213,15 @@ export default function PaymentControlPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Kurs</label>
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+              <Select
+                value={selectedCourse}
+                onValueChange={setSelectedCourse}
+                getDisplayValue={(val) => {
+                  if (!val) return 'Kurs seçin';
+                  const found = courses?.find((c: any) => c.id === val);
+                  return found ? found.name : val;
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Kurs seçin" />
                 </SelectTrigger>
@@ -232,6 +240,13 @@ export default function PaymentControlPage() {
               <Select 
                 value={selectedCourseLevel} 
                 onValueChange={setSelectedCourseLevel}
+                getDisplayValue={(val) => {
+                  if (!val) return 'Seviye seçin';
+                  const level = courseLevels?.find((l: any) => l.id === val);
+                  if (!level) return val;
+                  const levelLabels: Record<string,string> = { TEMEL: 'Temel', TEKNIK: 'Teknik', PERFORMANS: 'Performans', temel: 'Temel', teknik: 'Teknik', performans: 'Performans' };
+                  return levelLabels[level.level] || (level.level.charAt(0).toUpperCase() + level.level.slice(1));
+                }}
               >
                 <SelectTrigger disabled={!selectedCourse}>
                   <SelectValue placeholder="Seviye seçin" />

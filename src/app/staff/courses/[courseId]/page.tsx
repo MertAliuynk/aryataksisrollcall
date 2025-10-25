@@ -127,13 +127,27 @@ export default function CourseDetailPage() {
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Kurs Günleri</label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {getDayLabels(course.courseLevels?.[0]?.attendanceDays?.split(',') || []).map((day, index) => (
-                      <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700">
-                        {day}
-                      </Badge>
-                    ))}
+                  <label className="text-sm font-medium text-gray-700">Seviyeler &amp; Kurs Günleri</label>
+                  <div className="flex flex-col gap-2 mt-2">
+                    {(course.courseLevels || []).map((lvl: any) => {
+                      const days: string[] = Array.isArray(lvl.attendanceDays) ? lvl.attendanceDays : (typeof lvl.attendanceDays === 'string' && lvl.attendanceDays.length ? lvl.attendanceDays.split(',') : []);
+                      return (
+                        <div key={lvl.id} className="flex items-center gap-3">
+                          <span className="text-xs font-medium uppercase bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                            {lvl.level}
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {days.length > 0 ? days.map((dayKey: string) => (
+                              <Badge key={dayKey} variant="outline" className="bg-blue-50 text-blue-700">
+                                {DAYS_OF_WEEK.find(d => d.key === dayKey)?.label || dayKey}
+                              </Badge>
+                            )) : (
+                              <span className="text-xs text-gray-400">Belirtilmemiş</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 
@@ -212,8 +226,18 @@ export default function CourseDetailPage() {
                 </div>
                 
                 <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{course.courseLevels?.[0]?.attendanceDays?.split(',').length || 0}</div>
-                  <div className="text-sm text-gray-600">Haftalık Ders Günü</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {(() => {
+                      const allDays = new Set<string>();
+                      (course.courseLevels || []).forEach((lvl: any) => {
+                        const days = Array.isArray(lvl.attendanceDays) ? lvl.attendanceDays : (typeof lvl.attendanceDays === 'string' && lvl.attendanceDays.length ? lvl.attendanceDays.split(',') : []);
+                        days.forEach(d => allDays.add(d));
+                      });
+                      return allDays.size;
+                    })()
+                    }
+                  </div>
+                  <div className="text-sm text-gray-600">Haftalık Ders Günü (benzersiz)</div>
                 </div>
                 
                 <div className="text-center p-4 bg-purple-50 rounded-lg">

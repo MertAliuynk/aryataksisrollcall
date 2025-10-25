@@ -110,6 +110,7 @@ export const studentRouter = createTRPCRouter({
       search: z.string().optional(),
       courseId: z.string().nullish(),
       gender: z.enum(['male', 'female']).optional(),
+      level: z.enum(['temel', 'teknik', 'performans']).optional(),
       sortBy: z.enum(['firstName', 'lastName', 'createdAt', 'birthDate']).default('firstName'),
       sortOrder: z.enum(['asc', 'desc']).default('asc'),
     }))
@@ -171,12 +172,25 @@ export const studentRouter = createTRPCRouter({
         };
       }
 
+      if (input.level) {
+        where.studentCourses = {
+          ...(where.studentCourses || {}),
+          some: {
+            ...(where.studentCourses?.some || {}),
+            courseLevel: {
+              level: input.level,
+            },
+          },
+        };
+      }
+
       const students = await db.student.findMany({
         where,
         include: {
           studentCourses: {
             include: {
               course: true,
+              courseLevel: true,
             },
           },
         },
@@ -193,12 +207,24 @@ export const studentRouter = createTRPCRouter({
         gender: student.gender,
         tcNumber: student.tcNumber,
         phone: student.phone,
+        // include explicit parent fields so list queries have them available
+        motherFirstName: student.motherFirstName,
+        motherLastName: student.motherLastName,
+        motherPhone: student.motherPhone,
+        fatherFirstName: student.fatherFirstName,
+        fatherLastName: student.fatherLastName,
+        fatherPhone: student.fatherPhone,
         email: student.email,
         address: student.address,
         createdAt: student.createdAt,
         coursesCount: student.studentCourses.length,
         courseNames: student.studentCourses.map((sc: any) => sc.course.name),
-        courses: student.studentCourses.map((sc: any) => sc.course),
+        courses: student.studentCourses.map((sc: any) => ({
+          id: sc.course.id,
+          name: sc.course.name,
+          level: sc.courseLevel?.level,
+          levelId: sc.courseLevel?.id,
+        })),
       }));
     }),
 
@@ -292,5 +318,19 @@ export const studentRouter = createTRPCRouter({
       }
 
       return student;
+    }),
+  // Öğrenci silme
+  delete: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      const { id } = input;
+
+      // Önce öğrenciye ait ilişkileri temizle
+      await db.studentCourse.deleteMany({ where: { studentId: id } });
+
+      // Öğrenciyi sil
+      await db.student.delete({ where: { id } });
+
+      return { success: true };
     }),
 });

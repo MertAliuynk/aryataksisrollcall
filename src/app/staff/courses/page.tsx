@@ -164,24 +164,35 @@ export default function CoursesPage() {
                   <div className="flex items-start gap-2">
                     <Calendar className="h-4 w-4 text-gray-500 mt-0.5" />
                     <div>
-                      <div className="text-sm text-gray-600 mb-1">Yoklama günleri:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {course.attendanceDays && course.attendanceDays.length > 0 ? (
-                          course.attendanceDays.map((dayKey: string) => {
-                            const day = DAYS_OF_WEEK.find(d => d.key === dayKey);
-                            return (
-                              <span
-                                key={dayKey}
-                                className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-medium"
-                              >
-                                {day?.short || dayKey}
-                              </span>
-                            );
-                          })
-                        ) : (
-                          <span className="text-xs text-gray-400">Belirtilmemiş</span>
-                        )}
-                      </div>
+                          <div className="text-sm text-gray-600 mb-1">Seviyeler &amp; yoklama günleri:</div>
+                          <div className="flex flex-col gap-2">
+                            {course.courseLevels && course.courseLevels.length > 0 ? (
+                              course.courseLevels.map((level: any) => {
+                                const days: string[] = Array.isArray(level.attendanceDays) ? level.attendanceDays : (typeof level.attendanceDays === 'string' && level.attendanceDays.length ? level.attendanceDays.split(',') : []);
+                                return (
+                                  <div key={level.id} className="flex items-center gap-2">
+                                    <span className="text-xs font-medium uppercase bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                                      {level.level}
+                                    </span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {days.length > 0 ? days.map((dayKey: string) => {
+                                        const day = DAYS_OF_WEEK.find(d => d.key === dayKey);
+                                        return (
+                                          <span key={dayKey} className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">
+                                            {day?.short || dayKey}
+                                          </span>
+                                        );
+                                      }) : (
+                                        <span className="text-xs text-gray-400">Belirtilmemiş</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <span className="text-xs text-gray-400">Seviye bilgisi yok</span>
+                            )}
+                          </div>
                     </div>
                   </div>
 
