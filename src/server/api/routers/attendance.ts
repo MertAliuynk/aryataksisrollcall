@@ -144,7 +144,7 @@ export const attendanceRouter = createTRPCRouter({
         };
       }
 
-      // O tarihte zaten yoklama alınmış mı?
+      // O tarihte zaten yoklama alınmış mı kontrol et (bilgi amaçlı)
       const dateStart = new Date(date);
       dateStart.setHours(0, 0, 0, 0);
       const dateEnd = new Date(date);
@@ -160,16 +160,10 @@ export const attendanceRouter = createTRPCRouter({
         },
       });
 
-      if (existingAttendance) {
-        return { 
-          canTake: false, 
-          reason: 'Bu tarihte zaten yoklama alınmış' 
-        };
-      }
-
+      // Artık mevcut yoklama olsa bile yeni yoklama alınabilir (üzerine yazar)
       return { 
         canTake: true, 
-        reason: 'Yoklama alınabilir' 
+        reason: existingAttendance ? 'Bu tarihte zaten yoklama var - yeni yoklama üzerine yazacak' : 'Yoklama alınabilir' 
       };
     }),
 
@@ -203,7 +197,7 @@ export const attendanceRouter = createTRPCRouter({
       // Kurs seviyesinde bugün yoklama alınıyor mu?
       const canTakeToday = courseLevel.attendanceDays.includes(todayName);
 
-      // Bugün zaten yoklama alınmış mı?
+      // Bugün zaten yoklama alınmış mı kontrol et (bilgi amaçlı)
       const todayStart = new Date(today);
       todayStart.setHours(0, 0, 0, 0);
       const todayEnd = new Date(today);
@@ -219,13 +213,12 @@ export const attendanceRouter = createTRPCRouter({
         },
       });
 
-      if (existingAttendance) {
-        return { canTake: false, reason: 'Bugün zaten yoklama alınmış' };
-      }
-
+      // Artık mevcut yoklama olsa bile yeni yoklama alınabilir (üzerine yazar)
       return { 
         canTake: canTakeToday, 
-        reason: canTakeToday ? 'Yoklama alınabilir' : `${courseLevel.course.name} - ${courseLevel.level} seviyesi için bugün yoklama günü değil` 
+        reason: canTakeToday ? 
+          (existingAttendance ? 'Bugün zaten yoklama var - yeni yoklama üzerine yazacak' : 'Yoklama alınabilir') 
+          : `${courseLevel.course.name} - ${courseLevel.level} seviyesi için bugün yoklama günü değil` 
       };
     }),
 

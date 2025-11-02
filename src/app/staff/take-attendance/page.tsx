@@ -159,10 +159,14 @@ export default function TakeAttendancePage() {
       return;
     }
 
-    // Yoklama alınabilir mi kontrol et
+    // Yoklama alınabilir mi kontrol et (sadece gün kontrolü için)
     if (attendanceCheck && !attendanceCheck.canTake) {
-      alert(attendanceCheck.reason);
-      return;
+      // Sadece gün uyumu kontrolü yapıyoruz, mevcut kayıt varlığı engel değil
+      const isDateRestriction = attendanceCheck.reason.includes('yoklama günü değil');
+      if (isDateRestriction) {
+        alert(attendanceCheck.reason);
+        return;
+      }
     }
 
     if (dateError) {
@@ -567,10 +571,10 @@ export default function TakeAttendancePage() {
                         students.length === 0 || 
                         !!dateError || 
                         checkingAttendance || 
-                        (attendanceCheck && !attendanceCheck.canTake)
+                        (attendanceCheck && !attendanceCheck.canTake && attendanceCheck.reason.includes('yoklama günü değil'))
                       }
                       className={`w-full h-12 ${
-                        dateError || (attendanceCheck && !attendanceCheck.canTake)
+                        dateError || (attendanceCheck && !attendanceCheck.canTake && attendanceCheck.reason.includes('yoklama günü değil'))
                           ? 'bg-gray-400 cursor-not-allowed' 
                           : 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700'
                       }`}
