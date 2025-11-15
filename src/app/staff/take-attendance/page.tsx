@@ -42,6 +42,10 @@ export default function TakeAttendancePage() {
   // Kursları çek
   const { data: courses = [] } = api.course.getAll.useQuery();
   
+  // Staff kullanıcılarını çek (ilkini current user olarak kullanacağız)
+  const { data: staffUsers = [] } = api.staff.getAll.useQuery();
+  const currentStaffId = staffUsers.length > 0 ? staffUsers[0]?.id : null;
+  
   // Seçili kursa ait seviyeleri çek
   const { data: courseLevels = [] } = api.course.getLevels.useQuery(
     selectedCourseId,
@@ -199,7 +203,11 @@ export default function TakeAttendancePage() {
 
     setIsSubmitting(true);
     setShowConfirmDialog(false);
-    saveAttendance.mutate({ attendanceData });
+    // Mevcut staff kullanıcısının ID'sini kullan
+    saveAttendance.mutate({ 
+      staffId: currentStaffId || undefined,
+      attendanceData 
+    });
   };
 
   // Kurs değişikliği

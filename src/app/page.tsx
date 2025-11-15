@@ -84,7 +84,7 @@ export default function HomePage() {
   const loginTypes = [
     {
       icon: Shield,
-      title: "Çalışan Girişi",
+      title: "Eğitmen Girişi",
       description: "Öğretmen ve yöneticiler için tam sistem erişimi",
       color: "bg-gradient-to-r from-blue-500 to-blue-700",
       path: "/students",
@@ -145,7 +145,7 @@ export default function HomePage() {
                 className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white px-4 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Shield className="mr-1 h-3 w-3" />
-                {isNavigating && navigationType === 'staff' ? 'Yönlendiriliyor...' : 'Çalışan'}
+                {isNavigating && navigationType === 'staff' ? 'Yönlendiriliyor...' : 'Eğitmen'}
               </Button>
               <Button 
                 onClick={() => handleNavigation('/parent-reports', 'parent')}
@@ -193,7 +193,7 @@ export default function HomePage() {
                   className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Shield className="mr-2 h-5 w-5" />
-                  {isNavigating && navigationType === 'staff' ? 'Yönlendiriliyor...' : 'Çalışan Girişi'}
+                  {isNavigating && navigationType === 'staff' ? 'Yönlendiriliyor...' : 'Eğitmen Girişi'}
                   {!(isNavigating && navigationType === 'staff') && <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />}
                 </Button>
                 <Button 
@@ -313,7 +313,7 @@ export default function HomePage() {
                       {feature.description}
                     </p>
                     <div className="text-xs text-gray-500">
-                      {feature.role === 'staff' ? 'Sadece Çalışanlar' : 
+                      {feature.role === 'staff' ? 'Sadece Eğitmenler' : 
                        feature.role === 'parent' ? 'Sadece Veliler' : 
                        'Tüm Kullanıcılar'}
                     </div>
@@ -342,7 +342,7 @@ export default function HomePage() {
                     className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg rounded-xl shadow-lg group"
                   >
                     <Shield className="mr-2 h-5 w-5" />
-                    Çalışan Girişi
+                    Eğitmen Girişi
                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   <Button 
@@ -394,7 +394,7 @@ export default function HomePage() {
               </div>
               
               <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-green-600 to-purple-600 bg-clip-text text-transparent">
-                {navigationType === 'staff' ? 'Çalışan Paneline' : 'Veli Paneline'} Geçiliyor
+                {navigationType === 'staff' ? 'Eğitmen Paneline' : 'Veli Paneline'} Geçiliyor
               </h3>
               
               <p className="text-gray-600 text-lg">

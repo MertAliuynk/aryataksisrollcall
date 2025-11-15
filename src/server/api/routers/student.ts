@@ -111,11 +111,13 @@ export const studentRouter = createTRPCRouter({
       courseId: z.string().nullish(),
       gender: z.enum(['male', 'female']).optional(),
       level: z.enum(['temel', 'teknik', 'performans']).optional(),
+      birthDateFrom: z.date().optional(), // Doğum tarihi başlangıç
+      birthDateTo: z.date().optional(), // Doğum tarihi bitiş
       sortBy: z.enum(['firstName', 'lastName', 'createdAt', 'birthDate']).default('firstName'),
       sortOrder: z.enum(['asc', 'desc']).default('asc'),
     }))
     .query(async ({ input }) => {
-      const { search, courseId, gender, sortBy, sortOrder } = input;
+      const { search, courseId, gender, birthDateFrom, birthDateTo, sortBy, sortOrder } = input;
 
       const where: any = {};
 
@@ -162,6 +164,20 @@ export const studentRouter = createTRPCRouter({
 
       if (gender) {
         where.gender = gender;
+      }
+
+      // Doğum tarihi aralığı filtrelemesi
+      if (birthDateFrom || birthDateTo) {
+        where.birthDate = {};
+        if (birthDateFrom) {
+          where.birthDate.gte = birthDateFrom;
+        }
+        if (birthDateTo) {
+          // Bitiş tarihine 1 gün ekleyerek o günü dahil et
+          const endDate = new Date(birthDateTo);
+          endDate.setDate(endDate.getDate() + 1);
+          where.birthDate.lt = endDate;
+        }
       }
 
       if (courseId && courseId !== '' && courseId !== null) {

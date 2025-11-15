@@ -334,6 +334,7 @@ export const attendanceRouter = createTRPCRouter({
   // Yoklama al (kurs seviyesi bazında)
   takeAttendance: publicProcedure
     .input(z.object({
+      staffId: z.string().optional(), // Yoklamayı alan eğitmen
       attendanceData: z.array(z.object({
         studentId: z.string(),
         courseLevelId: z.string(),
@@ -378,6 +379,7 @@ export const attendanceRouter = createTRPCRouter({
         studentId: record.studentId,
         courseId: courseLevel.courseId,
         courseLevelId: record.courseLevelId,
+        staffId: input.staffId || null, // Eğitmen ID'sini kaydet
         date: record.date,
         status: record.status,
         notes: record.notes || '',
@@ -445,6 +447,14 @@ export const attendanceRouter = createTRPCRouter({
               id: true,
               level: true,
               attendanceDays: true,
+            },
+          },
+          staff: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              username: true,
             },
           },
         },

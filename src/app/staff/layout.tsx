@@ -19,7 +19,8 @@ import {
   Settings,
   BookOpen,
   CreditCard,
-  Receipt
+  Receipt,
+  Shield
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -86,6 +87,12 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
       label: 'Ödeme Takibi',
       href: '/staff/payment-tracking',
       description: 'Ödeme geçmişini görüntüle'
+    },
+    {
+      icon: Shield,
+      label: 'Kullanıcı Yönetimi',
+      href: '/staff/users',
+      description: 'Eğitmen kullanıcılarını yönet'
     }
   ];
 

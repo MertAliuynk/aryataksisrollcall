@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, UserPlus, Settings, ClipboardCheck, BarChart3, CreditCard, Receipt } from 'lucide-react';
+import { Users, UserPlus, Settings, ClipboardCheck, BarChart3, CreditCard, Receipt, Shield } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const menuItems = [
@@ -40,6 +40,11 @@ const menuItems = [
     title: 'Yönetim',
     href: '/management',
     icon: Settings,
+  },
+  {
+    title: 'Kullanıcı Yönetimi',
+    href: '/staff/users',
+    icon: Shield,
   },
 ];
 

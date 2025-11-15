@@ -62,12 +62,10 @@ export default function AttendanceTrackingPage() {
 
   // Öğrenci bazında yoklama verilerini grupla
   const groupedAttendanceData = attendanceData.reduce((acc: any, record: any) => {
-    const studentKey = `${record.student.id}-${record.courseLevel?.id || record.courseId}`;
+    const studentKey = record.student.id; // Sadece öğrenci ID'sine göre grupla
     if (!acc[studentKey]) {
       acc[studentKey] = {
         student: record.student,
-        course: record.course,
-        courseLevel: record.courseLevel,
         attendances: []
       };
     }
@@ -75,7 +73,9 @@ export default function AttendanceTrackingPage() {
       date: record.date,
       status: record.status || (record.isPresent ? 'PRESENT' : 'ABSENT'),
       id: record.id,
-      notes: record.notes
+      notes: record.notes,
+      courseLevel: record.courseLevel,
+      course: record.course // Her attendance'a course bilgisini de ekle
     });
     return acc;
   }, {});
@@ -93,8 +93,11 @@ export default function AttendanceTrackingPage() {
     return (
       group.student.firstName.toLowerCase().includes(searchLower) ||
       group.student.lastName.toLowerCase().includes(searchLower) ||
-      group.course.name.toLowerCase().includes(searchLower) ||
-      (group.courseLevel?.level && group.courseLevel.level.toLowerCase().includes(searchLower))
+      // Attendance'lar içinde course ve courseLevel arama
+      group.attendances.some((attendance: any) => 
+        attendance.course?.name?.toLowerCase().includes(searchLower) ||
+        attendance.courseLevel?.level?.toLowerCase().includes(searchLower)
+      )
     );
   });
 
@@ -448,16 +451,19 @@ export default function AttendanceTrackingPage() {
                             {studentGroup.student.firstName} {studentGroup.student.lastName}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            {studentGroup.course.name}
-                            {studentGroup.courseLevel && (
-                              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                                {studentGroup.courseLevel.level === 'temel' ? 'Temel' : 
-                                 studentGroup.courseLevel.level === 'teknik' ? 'Teknik' : 
-                                 studentGroup.courseLevel.level === 'performans' ? 'Performans' : 
-                                 studentGroup.courseLevel.level}
-                              </span>
-                            )}
-                            <span className="ml-2">• {studentGroup.attendances.length} yoklama kaydı</span>
+                            <span>{studentGroup.attendances.length} yoklama kaydı</span>
+                            {/* Katıldığı kurs seviyelerini göster */}
+                            <span className="ml-2">
+                              {Array.from(new Set(
+                                studentGroup.attendances.map((attendance: any) => attendance.courseLevel?.level).filter(Boolean)
+                              )).map((level: any) => (
+                                <span key={level} className="ml-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                  {level === 'temel' ? 'Temel' : 
+                                   level === 'teknik' ? 'Teknik' : 
+                                   level === 'performans' ? 'Performans' : level}
+                                </span>
+                              ))}
+                            </span>
                           </p>
                         </div>
                         <div className="text-right">
@@ -486,6 +492,11 @@ export default function AttendanceTrackingPage() {
                           <div className="flex flex-wrap gap-2">
                             {studentGroup.attendances.map((attendance: any, index: number) => {
                               const status = attendance.status || (attendance.isPresent ? 'PRESENT' : 'ABSENT');
+                              const levelLabel = attendance.courseLevel?.level === 'temel' ? 'Temel' : 
+                                               attendance.courseLevel?.level === 'teknik' ? 'Teknik' : 
+                                               attendance.courseLevel?.level === 'performans' ? 'Performans' : 
+                                               attendance.courseLevel?.level || 'N/A';
+                              const courseName = attendance.course?.name || 'Bilinmeyen Kurs';
                               return (
                               <div
                                 key={attendance.id}
@@ -497,6 +508,14 @@ export default function AttendanceTrackingPage() {
                                     : 'bg-orange-50 border-orange-200 text-orange-800'
                                 }`}
                               >
+                                {/* Course Name Label */}
+                                <div className="text-xs font-medium mb-1 bg-purple-100/80 px-1.5 py-0.5 rounded text-purple-800 border border-purple-200">
+                                  {courseName}
+                                </div>
+                                {/* Course Level Label */}
+                                <div className="text-xs font-medium mb-1 bg-white/60 px-1.5 py-0.5 rounded text-gray-700">
+                                  {levelLabel}
+                                </div>
                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center mb-1 ${
                                   status === 'PRESENT' 
                                     ? 'bg-green-600' 

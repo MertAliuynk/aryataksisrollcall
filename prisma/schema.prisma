@@ -84,6 +84,7 @@ model Attendance {
   studentId     String
   courseId      String
   courseLevelId String
+  staffId       String?          // Yoklamayı alan eğitmen
   date          DateTime
   status        AttendanceStatus @default(PRESENT)
   notes         String?
@@ -94,6 +95,7 @@ model Attendance {
   student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseLevel CourseLevel @relation(fields: [courseLevelId], references: [id], onDelete: Cascade)
+  staff       Staff?      @relation(fields: [staffId], references: [id], onDelete: SetNull)
 
   @@unique([studentId, courseLevelId, date])
   @@map("attendances")
@@ -110,6 +112,7 @@ model Payment {
   studentId     String
   courseId      String
   courseLevelId String
+  staffId       String?       // Ödeme kaydını yapan eğitmen
   month         Int           // 1-12 (Ocak-Aralık)
   year          Int           // 2024, 2025, vb.
   status        PaymentStatus @default(PENDING)
@@ -123,6 +126,7 @@ model Payment {
   student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseLevel CourseLevel @relation(fields: [courseLevelId], references: [id], onDelete: Cascade)
+  staff       Staff?      @relation(fields: [staffId], references: [id], onDelete: SetNull)
 
   @@unique([studentId, courseLevelId, month, year])
   @@map("payments")
@@ -145,6 +149,10 @@ model Staff {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // İlişkiler
+  attendances Attendance[]
+  payments    Payment[]
 
   @@map("staff")
 }

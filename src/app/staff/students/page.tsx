@@ -36,6 +36,8 @@ export default function StaffStudentsPage() {
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [selectedLevel, setSelectedLevel] = useState<string>('');
+  const [birthDateFrom, setBirthDateFrom] = useState<string>('');
+  const [birthDateTo, setBirthDateTo] = useState<string>('');
   const [sortBy, setSortBy] = useState<'firstName' | 'lastName' | 'createdAt' | 'birthDate'>('firstName');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<ViewMode>('card');
@@ -46,6 +48,8 @@ export default function StaffStudentsPage() {
     courseId: selectedCourse || undefined,
     gender: (selectedGender && selectedGender !== '') ? selectedGender as 'male' | 'female' : undefined,
     level: (selectedLevel && selectedLevel !== '') ? selectedLevel as 'temel' | 'teknik' | 'performans' : undefined,
+    birthDateFrom: birthDateFrom ? new Date(birthDateFrom) : undefined,
+    birthDateTo: birthDateTo ? new Date(birthDateTo) : undefined,
     sortBy,
     sortOrder,
   };
@@ -65,6 +69,9 @@ export default function StaffStudentsPage() {
     setSearch('');
     setSelectedCourse('');
     setSelectedGender('');
+    setSelectedLevel('');
+    setBirthDateFrom('');
+    setBirthDateTo('');
     setSortBy('firstName');
     setSortOrder('asc');
   };
@@ -263,6 +270,35 @@ export default function StaffStudentsPage() {
                   <SelectItem value="female">Kız</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Doğum Tarihi Aralığı Filtresi */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                📅 Doğum Tarihi Aralığı
+              </label>
+              <div className="space-y-2">
+                <div>
+                  <label className="text-xs text-gray-500">Başlangıç Tarihi</label>
+                  <Input
+                    type="date"
+                    value={birthDateFrom}
+                    onChange={(e) => setBirthDateFrom(e.target.value)}
+                    className="border-gray-200 focus:border-blue-400 focus:ring-blue-200"
+                    placeholder="2020-01-01"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Bitiş Tarihi</label>
+                  <Input
+                    type="date"
+                    value={birthDateTo}
+                    onChange={(e) => setBirthDateTo(e.target.value)}
+                    className="border-gray-200 focus:border-blue-400 focus:ring-blue-200"
+                    placeholder="2025-12-31"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Sıralama */}
