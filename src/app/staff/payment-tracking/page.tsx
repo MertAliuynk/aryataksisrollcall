@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../../utils/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
@@ -27,6 +27,16 @@ export default function PaymentTrackingPage() {
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [selectedCourseLevel, setSelectedCourseLevel] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // API queries
   const { data: courses } = api.course.getAll.useQuery();
@@ -113,24 +123,30 @@ export default function PaymentTrackingPage() {
   });
 
   // Filter payments by search term
-  const filteredPayments = paymentHistory?.filter(payment => {
-    if (!searchTerm) return true;
-    const fullName = `${payment.student.firstName} ${payment.student.lastName}`.toLowerCase();
-    return fullName.includes(searchTerm.toLowerCase());
-  }) || [];
+  const filteredPayments = useMemo(() => {
+    if (!paymentHistory) return [];
+    if (!debouncedSearchTerm) return paymentHistory;
+    
+    return paymentHistory.filter(payment => {
+      const fullName = `${payment.student.firstName} ${payment.student.lastName}`.toLowerCase();
+      return fullName.includes(debouncedSearchTerm.toLowerCase());
+    });
+  }, [paymentHistory, debouncedSearchTerm]);
 
   // Group payments by student and month
-  const groupedPayments = filteredPayments.reduce((acc, payment) => {
-    const studentKey = `${payment.student.firstName} ${payment.student.lastName}`;
-    if (!acc[studentKey]) {
-      acc[studentKey] = {
-        student: payment.student,
-        payments: {},
-      };
-    }
-    acc[studentKey].payments[payment.month] = payment;
-    return acc;
-  }, {} as Record<string, { student: any; payments: Record<number, any> }>);
+  const groupedPayments = useMemo(() => {
+    return filteredPayments.reduce((acc, payment) => {
+      const studentKey = `${payment.student.firstName} ${payment.student.lastName}`;
+      if (!acc[studentKey]) {
+        acc[studentKey] = {
+          student: payment.student,
+          payments: {},
+        };
+      }
+      acc[studentKey].payments[payment.month] = payment;
+      return acc;
+    }, {} as Record<string, { student: any; payments: Record<number, any> }>);
+  }, [filteredPayments]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">

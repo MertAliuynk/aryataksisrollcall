@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../../utils/trpc'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
@@ -28,6 +28,16 @@ export default function AttendanceTrackingPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Kursları çek
   const { data: courses = [] } = api.course.getAll.useQuery();
@@ -61,45 +71,51 @@ export default function AttendanceTrackingPage() {
   });
 
   // Öğrenci bazında yoklama verilerini grupla
-  const groupedAttendanceData = attendanceData.reduce((acc: any, record: any) => {
-    const studentKey = record.student.id; // Sadece öğrenci ID'sine göre grupla
-    if (!acc[studentKey]) {
-      acc[studentKey] = {
-        student: record.student,
-        attendances: []
-      };
-    }
-    acc[studentKey].attendances.push({
-      date: record.date,
-      status: record.status || (record.isPresent ? 'PRESENT' : 'ABSENT'),
-      id: record.id,
-      notes: record.notes,
-      courseLevel: record.courseLevel,
-      course: record.course // Her attendance'a course bilgisini de ekle
-    });
-    return acc;
-  }, {});
+  const groupedAttendanceData = useMemo(() => {
+    return attendanceData.reduce((acc: any, record: any) => {
+      const studentKey = record.student.id; // Sadece öğrenci ID'sine göre grupla
+      if (!acc[studentKey]) {
+        acc[studentKey] = {
+          student: record.student,
+          attendances: []
+        };
+      }
+      acc[studentKey].attendances.push({
+        date: record.date,
+        status: record.status || (record.isPresent ? 'PRESENT' : 'ABSENT'),
+        id: record.id,
+        notes: record.notes,
+        courseLevel: record.courseLevel,
+        course: record.course // Her attendance'a course bilgisini de ekle
+      });
+      return acc;
+    }, {});
+  }, [attendanceData]);
 
   // Öğrenci listesine dönüştür ve tarihe göre sırala
-  const studentsWithAttendances = Object.values(groupedAttendanceData).map((group: any) => ({
-    ...group,
-    attendances: group.attendances.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  }));
+  const studentsWithAttendances = useMemo(() => {
+    return Object.values(groupedAttendanceData).map((group: any) => ({
+      ...group,
+      attendances: group.attendances.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    }));
+  }, [groupedAttendanceData]);
 
   // Arama terimine göre filtreleme
-  const filteredData = studentsWithAttendances.filter((group: any) => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      group.student.firstName.toLowerCase().includes(searchLower) ||
-      group.student.lastName.toLowerCase().includes(searchLower) ||
-      // Attendance'lar içinde course ve courseLevel arama
-      group.attendances.some((attendance: any) => 
-        attendance.course?.name?.toLowerCase().includes(searchLower) ||
-        attendance.courseLevel?.level?.toLowerCase().includes(searchLower)
-      )
-    );
-  });
+  const filteredData = useMemo(() => {
+    return studentsWithAttendances.filter((group: any) => {
+      if (!debouncedSearchTerm) return true;
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      return (
+        group.student.firstName.toLowerCase().includes(searchLower) ||
+        group.student.lastName.toLowerCase().includes(searchLower) ||
+        // Attendance'lar içinde course ve courseLevel arama
+        group.attendances.some((attendance: any) => 
+          attendance.course?.name?.toLowerCase().includes(searchLower) ||
+          attendance.courseLevel?.level?.toLowerCase().includes(searchLower)
+        )
+      );
+    });
+  }, [studentsWithAttendances, debouncedSearchTerm]);
 
   // İstatistikler
   const totalRecords = attendanceData.length;
@@ -124,6 +140,7 @@ export default function AttendanceTrackingPage() {
     setDateFrom('');
     setDateTo('');
     setSearchTerm('');
+    setDebouncedSearchTerm('');
   };
 
   const exportData = () => {

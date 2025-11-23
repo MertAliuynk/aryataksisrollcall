@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../../utils/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
@@ -31,14 +31,27 @@ const DAYS_OF_WEEK = [
 export default function CoursesPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   // Kursları çek
   const { data: courses = [], isLoading, refetch } = api.course.getAll.useQuery();
 
   // Arama terimine göre filtreleme
-  const filteredCourses = courses.filter(course => {
-    if (!searchTerm) return true;
-    return course.name.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  const filteredCourses = useMemo(() => {
+    return courses.filter(course => {
+      if (!debouncedSearchTerm) return true;
+      return course.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+    });
+  }, [courses, debouncedSearchTerm]);
 
   const getDayLabels = (attendanceDays: string[]) => {
     return attendanceDays.map(dayKey => {

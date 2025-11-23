@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../../../utils/trpc';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
@@ -33,6 +33,7 @@ export default function StaffStudentsPage() {
   const router = useRouter();
   const ctx = api.useContext();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [selectedLevel, setSelectedLevel] = useState<string>('');
@@ -42,9 +43,18 @@ export default function StaffStudentsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<ViewMode>('card');
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
   // Öğrencileri getir
   const queryParams = {
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     courseId: selectedCourse || undefined,
     gender: (selectedGender && selectedGender !== '') ? selectedGender as 'male' | 'female' : undefined,
     level: (selectedLevel && selectedLevel !== '') ? selectedLevel as 'temel' | 'teknik' | 'performans' : undefined,
