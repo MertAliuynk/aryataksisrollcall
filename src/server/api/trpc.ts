@@ -4,23 +4,26 @@ import superjson from 'superjson';
 import { db } from '../db';
 
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+// NextRequest kaldırıldı, sadece Request kullanılacak
 
-// Next.js 13+ app router uyumlu context
-const createContext = async (opts?: { req?: NextRequest }) => {
+// Sadece Request ile uyumlu context
+const createContext = async (opts?: { req?: Request }) => {
   let user = null;
   const req = opts?.req;
+  let token = null;
   if (req) {
-    let token = null;
     // Authorization header
     const authHeader = req.headers.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.substring(7);
     }
-    // Cookie
+    // Cookie (manuel parse)
     if (!token) {
-      const cookie = req.cookies.get('token');
-      if (cookie) token = cookie.value;
+      const cookie = req.headers.get('cookie');
+      if (cookie) {
+        const match = cookie.match(/token=([^;]+)/);
+        if (match) token = match[1];
+      }
     }
     if (token) {
       try {
