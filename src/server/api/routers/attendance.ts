@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createTRPCRouter, publicProcedure } from '../trpc';
+import { createTRPCRouter, publicProcedure, protectedProcedure } from '../trpc';
 import { db } from '../../db';
 
 export const attendanceRouter = createTRPCRouter({
@@ -275,7 +275,7 @@ export const attendanceRouter = createTRPCRouter({
     }),
 
   // Toplu yoklama kaydet (kurs seviyesi bazında)
-  createBulk: publicProcedure
+  createBulk: protectedProcedure
     .input(z.object({
       courseLevelId: z.string(),
       date: z.date(),
@@ -533,7 +533,7 @@ export const attendanceRouter = createTRPCRouter({
     }),
 
   // Tek bir yoklama kaydını güncelle (status ve notlar)
-  updateAttendance: publicProcedure
+  updateAttendance: protectedProcedure
     .input(z.object({
       attendanceId: z.string(),
       status: z.enum(['PRESENT', 'ABSENT', 'EXCUSED']),

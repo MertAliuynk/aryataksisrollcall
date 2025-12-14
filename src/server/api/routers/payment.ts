@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
 import { db } from "../../db";
 
 export const paymentRouter = createTRPCRouter({
@@ -52,7 +52,7 @@ export const paymentRouter = createTRPCRouter({
     }),
 
   // Ödeme durumunu güncelle/oluştur
-  updatePaymentStatus: publicProcedure
+  updatePaymentStatus: protectedProcedure
     .input(z.object({
       studentId: z.string(),
       courseId: z.string(),

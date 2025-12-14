@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
 import bcrypt from "bcryptjs";
 
 export const staffRouter = createTRPCRouter({
@@ -46,8 +46,8 @@ export const staffRouter = createTRPCRouter({
       return staff;
     }),
 
-  // Yeni staff kullanıcısı oluştur
-  create: publicProcedure
+  // Yeni staff kullanıcısı oluştur (korumalı)
+  create: protectedProcedure
     .input(z.object({
       username: z.string().min(3, "Kullanıcı adı en az 3 karakter olmalıdır"),
       password: z.string().min(6, "Şifre en az 6 karakter olmalıdır"),
@@ -95,7 +95,7 @@ export const staffRouter = createTRPCRouter({
     }),
 
   // Staff kullanıcısını güncelle
-  update: publicProcedure
+  update: protectedProcedure
     .input(z.object({
       id: z.string(),
       username: z.string().min(3, "Kullanıcı adı en az 3 karakter olmalıdır"),
@@ -153,7 +153,7 @@ export const staffRouter = createTRPCRouter({
     }),
 
   // Staff kullanıcısını sil
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await ctx.db.staff.delete({
@@ -164,7 +164,7 @@ export const staffRouter = createTRPCRouter({
     }),
 
   // Staff kullanıcısının aktif durumunu değiştir
-  toggleActive: publicProcedure
+  toggleActive: protectedProcedure
     .input(z.object({ 
       id: z.string(),
       isActive: z.boolean(),

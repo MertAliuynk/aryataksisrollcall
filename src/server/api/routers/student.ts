@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createTRPCRouter, publicProcedure } from '../trpc';
+import { protectedProcedure } from '../trpc';
 import { db } from '../../db';
 
 export const studentRouter = createTRPCRouter({
