@@ -4,14 +4,24 @@ import superjson from 'superjson';
 import { db } from '../db';
 
 import jwt from 'jsonwebtoken';
-import { NextApiRequest } from 'next';
+import { NextRequest } from 'next/server';
 
-// Kullanıcıyı context'e ekle
-const createContext = (opts?: { req?: NextApiRequest }) => {
+// Next.js 13+ app router uyumlu context
+const createContext = async (opts?: { req?: NextRequest }) => {
   let user = null;
   const req = opts?.req;
   if (req) {
-    const token = req.headers?.authorization?.split(' ')[1] || req.cookies?.token;
+    let token = null;
+    // Authorization header
+    const authHeader = req.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+    // Cookie
+    if (!token) {
+      const cookie = req.cookies.get('token');
+      if (cookie) token = cookie.value;
+    }
     if (token) {
       try {
         user = jwt.verify(token, process.env.JWT_SECRET || 'secret');
