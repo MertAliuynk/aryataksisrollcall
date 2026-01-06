@@ -32,9 +32,8 @@ export default function StaffLoginPage() {
   const loginMutation = api.auth.login.useMutation({
     onSuccess: (data) => {
       // Token'ı localStorage'a kaydet
-      localStorage.setItem('staffToken', data.token);
+      localStorage.setItem('auth-token', data.token);
       localStorage.setItem('staffData', JSON.stringify(data.staff));
-      
       // Staff paneline yönlendir
       router.push('/staff/dashboard');
     },
